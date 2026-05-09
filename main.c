@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "eval.h"
+#include "update.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -11,7 +12,6 @@
 
 #define MODULES_DIR "/data/data/com.termux/files/home/rupythan/модули"
 
-// Встроенные модули
 static const char* builtin_modules[] = {
     "json", "csv", "xml", "ini", "yaml",
     "http", "база_данных", "матем", "строки",
@@ -21,17 +21,17 @@ static const char* builtin_modules[] = {
 };
 
 void list_modules() {
-    printf("\n📦 %sУстановленные модули Rupythan:%s\n\n", BOLD, RESET);
+    printf("\n📦 Установленные модули Rupythan:\n\n");
     for (int i = 0; builtin_modules[i]; i++) {
-        printf("  📚 %s%s%s\n", GREEN, builtin_modules[i], RESET);
+        printf("  📚 %s\n", builtin_modules[i]);
     }
-    printf("\nВсего: %d модулей\n", 15);
+    printf("\n");
 }
 
 void install_module(const char* name) {
     for (int i = 0; builtin_modules[i]; i++) {
         if (strcmp(builtin_modules[i], name) == 0) {
-            printf("%s✅ Модуль '%s' уже установлен (встроенный)%s\n", GREEN, name, RESET);
+            printf("✅ Модуль '%s' уже установлен (встроенный)\n", name);
             return;
         }
     }
@@ -44,7 +44,6 @@ void install_module(const char* name) {
     FILE* f = fopen(path, "w");
     if (f) {
         fprintf(f, "# Модуль: %s\n", name);
-        fprintf(f, "# Установлен через rupythan install\n\n");
         fprintf(f, "выведи(\"Модуль %s загружен!\")\n", name);
         fclose(f);
         printf("✅ Модуль '%s' установлен\n", name);
@@ -56,7 +55,7 @@ void install_module(const char* name) {
 void remove_module(const char* name) {
     for (int i = 0; builtin_modules[i]; i++) {
         if (strcmp(builtin_modules[i], name) == 0) {
-            printf("%s⚠️ Модуль '%s' — встроенный, удалить нельзя%s\n", YELLOW, name, RESET);
+            printf("⚠️ Модуль '%s' — встроенный, удалить нельзя\n", name);
             return;
         }
     }
@@ -111,7 +110,7 @@ void run_repl() {
     Env* global = env_new(NULL);
     register_builtins(global);
     
-    printf("🦊 %sRupythan v2.0%s — интерактивный режим\n", BOLD, RESET);
+    printf("🦊 Rupythan v2.0 — интерактивный режим\n");
     printf("   Введи 'выход' для выхода\n");
     printf("   Введи 'справка' для подсказки\n");
     printf("   Введи 'список' для списка модулей\n\n");
@@ -136,6 +135,8 @@ void run_repl() {
             Node* result = eval(ast, global);
             if (result && result->type == NODE_NUMBER)
                 printf("= %d\n", result->int_val);
+            else if (result && result->type == NODE_FLOAT)
+                printf("= %g\n", result->float_val);
             else if (result && result->type == NODE_STRING)
                 printf("= \"%s\"\n", result->str_val);
         }
@@ -160,6 +161,8 @@ void run_repl() {
             Node* result = eval(ast, global);
             if (result && result->type == NODE_NUMBER)
                 printf("= %d\n", result->int_val);
+            else if (result && result->type == NODE_FLOAT)
+                printf("= %g\n", result->float_val);
             else if (result && result->type == NODE_STRING)
                 printf("= \"%s\"\n", result->str_val);
         }
@@ -184,8 +187,7 @@ int main(int argc, char** argv) {
         list_modules();
     }
     else if (argc == 2 && strcmp(argv[1], "update") == 0) {
-        printf("🔄 %sОбновление Rupythan...%s\n", YELLOW, RESET);
-        printf("✅ Версия 2.0 (сборка %s %s)\n", __DATE__, __TIME__);
+        self_update();
     }
     else if (argc == 2) {
         run_file(argv[1]);
@@ -195,9 +197,9 @@ int main(int argc, char** argv) {
         if (ast) eval_program(ast);
     }
     else {
-        printf("🦊 %sRupythan v2.0%s\n\n", BOLD, RESET);
+        printf("🦊 Rupythan v2.0\n\n");
         printf("Команды:\n");
-        printf("  rupythan              — интерактивный режим\n");
+        printf("  rupythan              — REPL\n");
         printf("  rupythan файл.руп     — запустить файл\n");
         printf("  rupythan -с \"код\"     — выполнить строку\n");
         printf("  rupythan install имя  — установить модуль\n");
